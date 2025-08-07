@@ -6,7 +6,7 @@ import { useEffect } from "react";
 
 // 📬 Mail Detail Component
 const MailDetail = ({ mail }: { mail: any }) => {
-  const { closeMail, markRead, trashMail } = useMailStore();
+  const { closeMail, markRead, trash } = useMailStore();
 
   useEffect(() => {
     if (mail && !mail.isReadByRecipient) {
@@ -19,7 +19,10 @@ const MailDetail = ({ mail }: { mail: any }) => {
       <div className="flex items-center mb-4">
         <ArrowBigLeft className="cursor-pointer" onClick={closeMail} />
         <Delete
-          onClick={() => trashMail(mail._id)}
+          onClick={() => {
+            trash(mail._id);
+            closeMail();
+          }}
           className="ml-2 cursor-pointer"
         />
       </div>
@@ -38,7 +41,7 @@ const MailDetail = ({ mail }: { mail: any }) => {
 
       {mail.attachments?.length > 0 && (
         <a
-          href={mail.attachments[0].url}
+          href={mail.attachments[0].url.replace("/upload/", "/upload/fl_attachment/")}
           download
           className="text-blue-500 hover:underline mt-4 block"
         >
@@ -169,44 +172,54 @@ const MailsContainer = () => {
   const { sidebarMenu } = useSidebarStore();
   const { user } = useAuthStore();
 
-  if (user) {
-    if (sidebarMenu === "inbox") {
-      mails = mails.filter(
-        (mail) =>
-          mail.recipient._id === user.id &&
+  const filteredMails = mails.filter((mail) => {
+    const isRecipient = mail.recipient._id === user?.id;
+    const isSender = mail.sender._id === user?.id;
+
+    switch (sidebarMenu) {
+      case "inbox":
+        return (
+          isRecipient &&
           !mail.isTrashedByRecipient &&
           !mail.isDeletedByRecipient
-      );
-    } else if (sidebarMenu === "sent") {
-      mails = mails.filter(
-        (mail) =>
-          mail.sender._id === user.id &&
+        );
+
+      case "sent":
+        return (
+          isSender &&
           !mail.isTrashedBySender &&
           !mail.isDeletedBySender
-      );
-    } else if (sidebarMenu === "starred") {
-      mails = mails.filter((mail) => {
-        const isRecipient = mail.recipient._id === user.id;
-        const isNotTrashed = isRecipient
-          ? !mail.isTrashedByRecipient
-          : !mail.isTrashedBySender;
-        const isNotDeleted = isRecipient
-          ? !mail.isDeletedByRecipient
-          : !mail.isDeletedBySender;
-        const check = isRecipient && isNotDeleted && isNotTrashed;
-        return check ? mail.isStarredByRecipient : mail.isStarredBySender;
-      });
-    } else if (sidebarMenu === "trash") {
-      mails = mails.filter((mail) => {
-        const isRecipient = mail.recipient._id === user.id;
-        return isRecipient ? mail.isTrashedByRecipient : mail.isTrashedBySender;
-      });
+        );
+
+      case "starred":
+        if (isRecipient) {
+          return (
+            !mail.isTrashedByRecipient &&
+            !mail.isDeletedByRecipient &&
+            mail.isStarredByRecipient
+          );
+        } else if (isSender) {
+          return (
+            !mail.isTrashedBySender &&
+            !mail.isDeletedBySender &&
+            mail.isStarredBySender
+          );
+        }
+        return false;
+
+      case "trash":
+        return isRecipient
+          ? mail.isTrashedByRecipient
+          : mail.isTrashedBySender;
+
+      default:
+        return false;
     }
-  }
+  });
 
   return (
     <>
-      {!isMailOpen && <MailsList mails={mails} />}
+      {!isMailOpen && <MailsList mails={filteredMails} />}
       {isMailOpen && <MailDetail mail={openedMail} />}
     </>
   );

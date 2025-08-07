@@ -22,7 +22,7 @@ const triggerStarAPI = (mailId: string) => {
   }
 
   const fn = debouncedStarMap.get(mailId);
-  fn?.(); // call it
+  fn?.();
 };
 
 // Optional: Flush all pending calls on unload
@@ -73,7 +73,7 @@ interface MailState {
   isMailOpen: boolean;
   openedMail: Mail | null;
   mailBoxOpen: boolean;
-  isMailSending: Boolean;
+  isMailSending: boolean;
   toggleMailBox: () => void;
   checkboxs: string[];
   setCheckboxs: (id: string) => void;
@@ -91,8 +91,7 @@ interface MailState {
   getMyRecentMails: () => void;
   markRead: (mailId: string) => void;
   starMailToggle: (mailId: string) => void;
-  trashMail: (mailId: string) => void;
-  trashMultipleMails: () => void;
+  trash: (mailId?: string) => void;
 }
 
 const useMailStore = create<MailState>((set) => ({
@@ -103,19 +102,24 @@ const useMailStore = create<MailState>((set) => ({
   mailBoxOpen: false,
   isMailSending: false,
   checkboxs: [],
+
   setCheckboxs: (id: string) =>
     set((state) => {
-      if (state.checkboxs.includes(id)) {
-        return { checkboxs: state.checkboxs.filter((item) => item !== id) };
-      } else {
-        return { checkboxs: [...state.checkboxs, id] };
-      }
+      const exists = state.checkboxs.includes(id);
+      return {
+        checkboxs: exists
+          ? state.checkboxs.filter((item) => item !== id)
+          : [...state.checkboxs, id],
+      };
     }),
+
   clearCheckboxs: () => set({ checkboxs: [] }),
-  toggleMailBox: () => set((state) => ({ mailBoxOpen: !state.mailBoxOpen })),
+
+  toggleMailBox: () =>
+    set((state) => ({ mailBoxOpen: !state.mailBoxOpen })),
+
   sendMail: async (formData) => {
     set({ isMailSending: true });
-
     try {
       const data = new FormData();
       data.append("username", formData.username);
@@ -123,18 +127,16 @@ const useMailStore = create<MailState>((set) => ({
       data.append("body", formData.body);
 
       if (formData.file) {
-        data.append("file", formData.file); // append file
+        data.append("file", formData.file);
       }
 
-      const result = await axiosInstance.post("/api/v2/mail", data, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+      const res = await axiosInstance.post("/api/v2/mail", data, {
+        headers: { "Content-Type": "multipart/form-data" },
         withCredentials: true,
       });
 
       set((state) => ({
-        mails: [result.data.mail, ...state.mails],
+        mails: [res.data.mail, ...state.mails],
       }));
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to send mail");
@@ -142,18 +144,26 @@ const useMailStore = create<MailState>((set) => ({
       set({ isMailSending: false });
     }
   },
-  addMail: (mail) => set((state) => ({ mails: [mail, ...state.mails] })),
+
+  addMail: (mail) =>
+    set((state) => ({ mails: [mail, ...state.mails] })),
+
   closeMail: () => set({ isMailOpen: false, openedMail: null }),
-  setOpenedMail: (mail) => set({ openedMail: mail, isMailOpen: true }),
+
+  setOpenedMail: (mail) =>
+    set({ openedMail: mail, isMailOpen: true }),
+
   setMailOpen: (isOpen) => set({ isMailOpen: isOpen }),
+
   getMyRecentMails: async () => {
     try {
-      const response = await axiosInstance.get("/api/v2/mail/recent-mails");
-      set({ mails: response.data });
+      const res = await axiosInstance.get("/api/v2/mail/recent-mails");
+      set({ mails: res.data });
     } catch (error) {
       toast.error("Failed to fetch recent mails");
     }
   },
+
   subscribeToMails: () => {
     const socket = useAuthStore.getState().socket;
     if (!socket) {
@@ -170,21 +180,26 @@ const useMailStore = create<MailState>((set) => ({
       }));
     });
   },
+
   markRead: async (mailId: string) => {
     try {
       await axiosInstance.post(`/api/v2/mail/mark-read/${mailId}`);
       set((state) => ({
         mails: state.mails.map((mail) =>
-          mail._id === mailId ? { ...mail, isReadByRecipient: true } : mail
+          mail._id === mailId
+            ? { ...mail, isReadByRecipient: true }
+            : mail
         ),
       }));
     } catch (error) {
       toast.error("Failed to mark mail as read");
     }
   },
-  starMailToggle: async (mailId: string) => {
+
+  starMailToggle: (mailId: string) => {
     try {
       const userId = useAuthStore.getState().user?.id;
+
       set((state) => ({
         mails: state.mails.map((mail) =>
           mail._id === mailId
@@ -197,55 +212,60 @@ const useMailStore = create<MailState>((set) => ({
 
       triggerStarAPI(mailId);
     } catch (error) {
-      toast.error("Failed to star mail");
+      toast.error("Failed to toggle star");
     }
   },
-  trashMail: async (mailId: string) => {
+
+  trash: async (mailId?: string) => {
+    const userId = useAuthStore.getState().user?.id;
+
     try {
-      const userId = useAuthStore.getState().user?.id;
+      if (mailId) {
+        // Single mail trash
+        set((state) => ({
+          mails: state.mails.map((mail) =>
+            mail._id === mailId
+              ? {
+                  ...mail,
+                  ...(userId === mail.recipient._id
+                    ? { isTrashedByRecipient: true }
+                    : { isTrashedBySender: true }),
+                }
+              : mail
+          ),
+        }));
 
-      set((state) => ({
-        mails: state.mails.map((mail) => {
-          if (mail._id !== mailId) return mail;
+        await axiosInstance.post("/api/v2/mail/trash", {
+          mailIds: [mailId],
+        });
+      } else {
+        // Multiple mail trash
+        set((state) => {
+          const updatedMails = state.mails.map((mail) =>
+            state.checkboxs.includes(mail._id)
+              ? {
+                  ...mail,
+                  ...(userId === mail.recipient._id
+                    ? { isTrashedByRecipient: true }
+                    : { isTrashedBySender: true }),
+                }
+              : mail
+          );
 
-          const isRecipient = userId === mail.recipient._id;
+          axiosInstance.post("/api/v2/mail/trash", {
+            mailIds: state.checkboxs,
+          });
 
           return {
-            ...mail,
-            ...(isRecipient
-              ? { isTrashedByRecipient: true }
-              : { isTrashedBySender: true }),
+            mails: updatedMails,
+            checkboxs: [],
           };
-        }),
-        openedMail: null,
-        isMailOpen: false,
-      }));
-      await axiosInstance.delete(`/api/v2/mail/trash/${mailId}`);
+        });
+      }
     } catch (error) {
-      toast.error("Failed to delete mail");
+      toast.error("Failed to move mail to trash");
     }
   },
-  trashMultipleMails: () =>
-    set((state) => {
-      const { checkboxs, mails } = state;
-      const userId = useAuthStore.getState().user?.id;
-
-      const updatedMails = mails.map((mail) => {
-        if (checkboxs.includes(mail._id)) {
-          return {
-            ...mail,
-            ...(userId === mail.recipient._id
-              ? { isTrashedByRecipient: true }
-              : { isTrashedBySender: true }),
-          };
-        }
-        return mail;
-      });
-
-      axiosInstance.delete("/api/v2/mail/trash-multiple", { data: { mailIds: checkboxs } });
-
-      return { mails: updatedMails, checkboxs: [] };
-    }),
 }));
 
 export default useMailStore;
