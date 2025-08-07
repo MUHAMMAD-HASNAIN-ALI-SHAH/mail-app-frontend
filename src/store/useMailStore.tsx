@@ -92,6 +92,7 @@ interface MailState {
   markRead: (mailId: string) => void;
   starMailToggle: (mailId: string) => void;
   trash: (mailId?: string) => void;
+  unTrash: () => void;
 }
 
 const useMailStore = create<MailState>((set) => ({
@@ -115,8 +116,7 @@ const useMailStore = create<MailState>((set) => ({
 
   clearCheckboxs: () => set({ checkboxs: [] }),
 
-  toggleMailBox: () =>
-    set((state) => ({ mailBoxOpen: !state.mailBoxOpen })),
+  toggleMailBox: () => set((state) => ({ mailBoxOpen: !state.mailBoxOpen })),
 
   sendMail: async (formData) => {
     set({ isMailSending: true });
@@ -145,13 +145,11 @@ const useMailStore = create<MailState>((set) => ({
     }
   },
 
-  addMail: (mail) =>
-    set((state) => ({ mails: [mail, ...state.mails] })),
+  addMail: (mail) => set((state) => ({ mails: [mail, ...state.mails] })),
 
   closeMail: () => set({ isMailOpen: false, openedMail: null }),
 
-  setOpenedMail: (mail) =>
-    set({ openedMail: mail, isMailOpen: true }),
+  setOpenedMail: (mail) => set({ openedMail: mail, isMailOpen: true }),
 
   setMailOpen: (isOpen) => set({ isMailOpen: isOpen }),
 
@@ -186,9 +184,7 @@ const useMailStore = create<MailState>((set) => ({
       await axiosInstance.post(`/api/v2/mail/mark-read/${mailId}`);
       set((state) => ({
         mails: state.mails.map((mail) =>
-          mail._id === mailId
-            ? { ...mail, isReadByRecipient: true }
-            : mail
+          mail._id === mailId ? { ...mail, isReadByRecipient: true } : mail
         ),
       }));
     } catch (error) {
@@ -264,6 +260,36 @@ const useMailStore = create<MailState>((set) => ({
       }
     } catch (error) {
       toast.error("Failed to move mail to trash");
+    }
+  },
+
+  unTrash: async () => {
+    const userId = useAuthStore.getState().user?.id;
+
+    try {
+      set((state) => {
+        const updatedMails = state.mails.map((mail) =>
+          state.checkboxs.includes(mail._id)
+            ? {
+                ...mail,
+                ...(userId === mail.recipient._id
+                  ? { isTrashedByRecipient: false }
+                  : { isTrashedBySender: false }),
+              }
+            : mail
+        );
+
+        axiosInstance.post("/api/v2/mail/untrash", {
+          mailIds: state.checkboxs,
+        });
+
+        return {
+          mails: updatedMails,
+          checkboxs: [],
+        };
+      });
+    } catch (error) {
+      toast.error("Failed to move mail to inbox");
     }
   },
 }));
