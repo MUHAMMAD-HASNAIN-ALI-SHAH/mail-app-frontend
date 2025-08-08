@@ -1,9 +1,9 @@
-import { Recycle, RefreshCcw, Trash2 } from "lucide-react";
+import { DeleteIcon, Recycle, RefreshCcw, Trash2 } from "lucide-react";
 import useMailStore from "../../store/useMailStore";
 import useSidebarStore from "../../store/useSidebarStore";
 
 const MailHeader = () => {
-  const { isMailOpen, checkboxs, trash, unTrash } = useMailStore();
+  const { isMailOpen, checkboxs, trash, unTrash, deleteMail } = useMailStore();
   const { sidebarMenu } = useSidebarStore();
   return (
     <div className="flex items-center justify-between p-4 bg-white">
@@ -24,18 +24,25 @@ const MailHeader = () => {
                   <RefreshCcw size={20} className="cursor-pointer" />
                 </>
               )}
-             {
+              {
                 sidebarMenu === "trash" && (
                   <>
                     {checkboxs.length > 0 && (
-                      <Recycle
-                        size={20}
-                        className="cursor-pointer"
-                        onClick={() => unTrash()}
-                      />
+                      <>
+                        <DeleteIcon
+                          size={20}
+                          className="cursor-pointer"
+                          onClick={() => deleteMail()}
+                        />
+                        <Recycle
+                          size={20}
+                          className="cursor-pointer"
+                          onClick={() => unTrash()}
+                        />
+                      </>
                     )}
                   </>
-                )}              
+                )}
             </button>
           </div>
         </>

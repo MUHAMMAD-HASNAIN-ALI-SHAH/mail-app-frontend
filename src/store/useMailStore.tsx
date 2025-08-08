@@ -93,6 +93,7 @@ interface MailState {
   starMailToggle: (mailId: string) => void;
   trash: (mailId?: string) => void;
   unTrash: () => void;
+  deleteMail: () => void;
 }
 
 const useMailStore = create<MailState>((set) => ({
@@ -222,11 +223,11 @@ const useMailStore = create<MailState>((set) => ({
           mails: state.mails.map((mail) =>
             mail._id === mailId
               ? {
-                  ...mail,
-                  ...(userId === mail.recipient._id
-                    ? { isTrashedByRecipient: true }
-                    : { isTrashedBySender: true }),
-                }
+                ...mail,
+                ...(userId === mail.recipient._id
+                  ? { isTrashedByRecipient: true }
+                  : { isTrashedBySender: true }),
+              }
               : mail
           ),
         }));
@@ -240,11 +241,11 @@ const useMailStore = create<MailState>((set) => ({
           const updatedMails = state.mails.map((mail) =>
             state.checkboxs.includes(mail._id)
               ? {
-                  ...mail,
-                  ...(userId === mail.recipient._id
-                    ? { isTrashedByRecipient: true }
-                    : { isTrashedBySender: true }),
-                }
+                ...mail,
+                ...(userId === mail.recipient._id
+                  ? { isTrashedByRecipient: true }
+                  : { isTrashedBySender: true }),
+              }
               : mail
           );
 
@@ -271,11 +272,11 @@ const useMailStore = create<MailState>((set) => ({
         const updatedMails = state.mails.map((mail) =>
           state.checkboxs.includes(mail._id)
             ? {
-                ...mail,
-                ...(userId === mail.recipient._id
-                  ? { isTrashedByRecipient: false }
-                  : { isTrashedBySender: false }),
-              }
+              ...mail,
+              ...(userId === mail.recipient._id
+                ? { isTrashedByRecipient: false }
+                : { isTrashedBySender: false }),
+            }
             : mail
         );
 
@@ -292,6 +293,24 @@ const useMailStore = create<MailState>((set) => ({
       toast.error("Failed to move mail to inbox");
     }
   },
+  deleteMail: async () => {
+    try {
+      set((state) => {
+        const updatedMails = state.mails.filter((mail) => !state.checkboxs.includes(mail._id));
+
+        axiosInstance.delete("/api/v2/mail/delete", {
+          data: { mailIds: state.checkboxs },
+        });
+
+        return {
+          mails: updatedMails,
+          checkboxs: [],
+        };
+      });
+    } catch (error) {
+      toast.error("Failed to delete mail");
+    }
+  }
 }));
 
 export default useMailStore;
