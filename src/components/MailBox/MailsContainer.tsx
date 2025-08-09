@@ -34,6 +34,7 @@ const MailDetail = ({ mail }: { mail: any }) => {
           {typeof mail.sender === "string" ? mail.sender : mail.sender.username}
         </span>
       </div>
+      
       <div
         className="text-gray-800"
         dangerouslySetInnerHTML={{ __html: mail.body }}
