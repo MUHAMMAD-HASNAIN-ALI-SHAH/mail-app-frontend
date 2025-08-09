@@ -46,11 +46,7 @@ export interface Mail {
   };
   subject: string;
   body: string;
-  attachments: {
-    url: string;
-    fileName: string;
-    fileType: string;
-  }[];
+  attachment: string;
   isReadBySender: boolean;
   isReadByRecipient: boolean;
   isStarredBySender: boolean;
@@ -82,7 +78,7 @@ interface MailState {
     username: string;
     subject: string;
     body: string;
-    file: File | null;
+    file: string;
   }) => Promise<void>;
   setOpenedMail: (mail: Mail) => void;
   closeMail: () => void;
@@ -121,20 +117,16 @@ const useMailStore = create<MailState>((set) => ({
 
   sendMail: async (formData) => {
     set({ isMailSending: true });
+
     try {
-      const data = new FormData();
-      data.append("username", formData.username);
-      data.append("subject", formData.subject);
-      data.append("body", formData.body);
+      const payload = {
+        username: formData.username,
+        subject: formData.subject,
+        body: formData.body,
+        file: formData.file,
+      };
 
-      if (formData.file) {
-        data.append("file", formData.file);
-      }
-
-      const res = await axiosInstance.post("/api/v2/mail", data, {
-        headers: { "Content-Type": "multipart/form-data" },
-        withCredentials: true,
-      });
+      const res = await axiosInstance.post("/api/v2/mail", payload);
 
       set((state) => ({
         mails: [res.data.mail, ...state.mails],
@@ -223,11 +215,11 @@ const useMailStore = create<MailState>((set) => ({
           mails: state.mails.map((mail) =>
             mail._id === mailId
               ? {
-                ...mail,
-                ...(userId === mail.recipient._id
-                  ? { isTrashedByRecipient: true }
-                  : { isTrashedBySender: true }),
-              }
+                  ...mail,
+                  ...(userId === mail.recipient._id
+                    ? { isTrashedByRecipient: true }
+                    : { isTrashedBySender: true }),
+                }
               : mail
           ),
         }));
@@ -241,11 +233,11 @@ const useMailStore = create<MailState>((set) => ({
           const updatedMails = state.mails.map((mail) =>
             state.checkboxs.includes(mail._id)
               ? {
-                ...mail,
-                ...(userId === mail.recipient._id
-                  ? { isTrashedByRecipient: true }
-                  : { isTrashedBySender: true }),
-              }
+                  ...mail,
+                  ...(userId === mail.recipient._id
+                    ? { isTrashedByRecipient: true }
+                    : { isTrashedBySender: true }),
+                }
               : mail
           );
 
@@ -272,11 +264,11 @@ const useMailStore = create<MailState>((set) => ({
         const updatedMails = state.mails.map((mail) =>
           state.checkboxs.includes(mail._id)
             ? {
-              ...mail,
-              ...(userId === mail.recipient._id
-                ? { isTrashedByRecipient: false }
-                : { isTrashedBySender: false }),
-            }
+                ...mail,
+                ...(userId === mail.recipient._id
+                  ? { isTrashedByRecipient: false }
+                  : { isTrashedBySender: false }),
+              }
             : mail
         );
 
@@ -293,10 +285,13 @@ const useMailStore = create<MailState>((set) => ({
       toast.error("Failed to move mail to inbox");
     }
   },
+
   deleteMail: async () => {
     try {
       set((state) => {
-        const updatedMails = state.mails.filter((mail) => !state.checkboxs.includes(mail._id));
+        const updatedMails = state.mails.filter(
+          (mail) => !state.checkboxs.includes(mail._id)
+        );
 
         axiosInstance.delete("/api/v2/mail/delete", {
           data: { mailIds: state.checkboxs },
@@ -310,7 +305,7 @@ const useMailStore = create<MailState>((set) => ({
     } catch (error) {
       toast.error("Failed to delete mail");
     }
-  }
+  },
 }));
 
 export default useMailStore;

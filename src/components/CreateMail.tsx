@@ -8,29 +8,39 @@ interface CreateMailProps {
 
 const CreateMail = ({ onClose }: CreateMailProps) => {
   const { isMailSending, sendMail } = useMailStore();
+
   const [form, setForm] = useState<{
     username: string;
     subject: string;
     body: string;
-    file: File | null;
+    file: string;
   }>({
     username: "",
     subject: "",
     body: "",
-    file: null,
+    file: "",
   });
 
   const onChangeFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files && e.target.files[0];
-    if (file) {
-      setForm({ ...form, file });
+    const file = e.target.files?.[0];
+    if (!file) {
+      setForm((prev) => ({ ...prev, file: "" }));
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      setForm((prev) => ({ ...prev, file: base64 }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const onChange = (e: { target: { name: any; value: any } }) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Form submitted:", form);
@@ -40,7 +50,7 @@ const CreateMail = ({ onClose }: CreateMailProps) => {
           username: "",
           subject: "",
           body: "",
-          file: null,
+          file: "",
         });
         onClose();
       })
@@ -94,8 +104,17 @@ const CreateMail = ({ onClose }: CreateMailProps) => {
             type="file"
             onChange={onChangeFile}
             className="w-full text-sm border border-gray-300 rounded px-2 py-1"
-            accept=".jpg,.jpeg,.png,.pdf"
+            accept="image/*"
           />
+
+          {/* display image */}
+          {form.file && (
+            <img
+              src={form.file}
+              alt="Uploaded"
+              className="mt-2 max-h-60 max-w-60"
+            />
+          )}
 
           {/* Send Button */}
           <div className="flex justify-end">

@@ -39,14 +39,11 @@ const MailDetail = ({ mail }: { mail: any }) => {
         dangerouslySetInnerHTML={{ __html: mail.body }}
       ></div>
 
-      {mail.attachments?.length > 0 && (
-        <a
-          href={mail.attachments[0].url.replace("/upload/", "/upload/fl_attachment/")}
-          download
-          className="text-blue-500 hover:underline mt-4 block"
-        >
-          Download Attachment
-        </a>
+      {mail.attachment && (
+        <img
+          src={mail.attachment}
+          className="text-blue-500 hover:underline mt-4 block max-w-70"
+        />
       )}
     </div>
   );
@@ -185,11 +182,7 @@ const MailsContainer = () => {
         );
 
       case "sent":
-        return (
-          isSender &&
-          !mail.isTrashedBySender &&
-          !mail.isDeletedBySender
-        );
+        return isSender && !mail.isTrashedBySender && !mail.isDeletedBySender;
 
       case "starred":
         if (isRecipient) {
@@ -208,9 +201,7 @@ const MailsContainer = () => {
         return false;
 
       case "trash":
-        return isRecipient
-          ? mail.isTrashedByRecipient
-          : mail.isTrashedBySender;
+        return isRecipient ? mail.isTrashedByRecipient : mail.isTrashedBySender;
 
       default:
         return false;
