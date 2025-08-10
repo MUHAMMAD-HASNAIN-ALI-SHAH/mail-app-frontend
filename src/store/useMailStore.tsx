@@ -55,10 +55,9 @@ export interface Mail {
   isTrashedByRecipient: boolean;
   isDeletedBySender: boolean;
   isDeletedByRecipient: boolean;
-  threadId?: string;
-  replyTo?: string;
   createdAt: string;
   updatedAt: string;
+  totalMailsInThread?: number;
   __v?: number;
 }
 

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import MailHeader from "./MailBox/MailHeader";
+import MailHeader from "./MailHeader";
 import useMailStore from "../store/useMailStore";
 import { Loader } from "lucide-react";
 import MailsContainer from "./MailBox/MailsContainer";

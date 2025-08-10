@@ -1,6 +1,6 @@
 import { DeleteIcon, Recycle, RefreshCcw, Trash2 } from "lucide-react";
-import useMailStore from "../../store/useMailStore";
-import useSidebarStore from "../../store/useSidebarStore";
+import useMailStore from "../store/useMailStore";
+import useSidebarStore from "../store/useSidebarStore";
 
 const MailHeader = () => {
   const { isMailOpen, checkboxs, trash, unTrash, deleteMail } = useMailStore();
