@@ -36,30 +36,18 @@ const Navbar = () => {
         <span className="text-xl font-semibold text-gray-800">MailHub</span>
       </div>
 
-      {/* Center: Search bar */}
-      <div className="flex-1 max-w-md mx-6">
-        <input
-          type="text"
-          placeholder="Search mail..."
-          className="w-full px-4 py-2 border border-blue-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
       {/* Right: Profile image and dropdown */}
       <div className="flex items-center gap-4 relative" ref={dropdownRef}>
         <img
-          src="https://i.pravatar.cc/300"
+          src="./user.png"
           alt="User"
-          className="w-9 h-9 rounded-full object-cover border cursor-pointer"
+          className="w-9 h-9 rounded-full object-cover cursor-pointer"
           onClick={() => setIsDropdownOpen((prev) => !prev)}
         />
 
         {isDropdownOpen && (
           <div className="absolute right-0 top-14 bg-white border border-blue-200 rounded-md shadow-lg w-48 z-50">
             <ul className="py-2">
-              <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
-                Profile
-              </li>
               <li
                 onClick={logout}
                 className="px-4 py-2 text-red-600 hover:bg-red-50 cursor-pointer"

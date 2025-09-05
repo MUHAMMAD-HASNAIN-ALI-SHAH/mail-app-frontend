@@ -7,7 +7,7 @@ interface MyEditorProps {
 
 const MyEditor: React.FC<MyEditorProps> = ({ onChange }) => {
   const editorRef = useRef<HTMLDivElement | null>(null);
-  const [html, setHtml] = useState("");
+  const [, setHtml] = useState("");
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
